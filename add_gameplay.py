@@ -12,10 +12,10 @@ segment_videos = [os.path.join(segments_path, f) for f in os.listdir(segments_pa
 gameplay_videos = [os.path.join(gameplay_path, f) for f in os.listdir(gameplay_path) if f.endswith(('.mp4', '.avi', '.mov'))]
 
 # Paramètres
-crop_percentage = 0.1  # Pourcentage à recadrer de chaque côté (10% ici)
+crop_percentage = 0.15  # Pourcentage à recadrer de chaque côté (10% ici)
 final_width = 720
 final_height = 1280
-padding = 10  # Bande noire entre les vidéos
+padding = 0 # Bande noire entre les vidéos
 
 # Fonction pour enlever le son d'un clip
 def remove_audio(clip):
