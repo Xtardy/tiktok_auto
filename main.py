@@ -1,4 +1,4 @@
-from download_video import download_video, download_subtitles
+from download_video import download_video
 from cut_video import cut_video, find_cut_points, adjust_cut_points
 import moviepy.editor as mp
 import os

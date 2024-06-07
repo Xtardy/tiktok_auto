@@ -8,6 +8,8 @@ from moviepy.editor import VideoFileClip, ImageClip, CompositeVideoClip
 from PIL import Image, ImageDraw, ImageFont
 import srt
 from datetime import timedelta
+from subtitle_duration import read_srt,segment_transcript,format_subtitles_srt
+
 
 
 def transcribe_audio_with_wav2vec(video_path):
@@ -22,6 +24,10 @@ def transcribe_audio_with_wav2vec(video_path):
     # Charger le modèle Wav2Vec 2.0
     processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base-960h")
     model = Wav2Vec2ForCTC.from_pretrained("facebook/wav2vec2-base-960h")
+    
+    # processor = Wav2Vec2Processor.from_pretrained("openai/whisper-large-v3")
+    # model = Wav2Vec2ForCTC.from_pretrained("openai/whisper-large-v3")
+
 
     # Utiliser le GPU si disponible
     device = torch.device("cpu")
@@ -36,56 +42,55 @@ def transcribe_audio_with_wav2vec(video_path):
 
     predicted_ids = torch.argmax(logits, dim=-1)
     transcription = processor.batch_decode(predicted_ids)[0]
+
+    # Extraire les informations de timing des mots
+    word_timestamps = processor.decode(predicted_ids[0], output_word_offsets=True)
     
     # Supprimer le fichier audio temporaire
     os.remove(audio_path)
 
-    return transcription
+    return transcription, word_timestamps
 
-def generate_srt_from_transcription(transcription, srt_path, duration, threshold = 1):
-    words = transcription.split()
-    num_words = len(words)
-
-    if num_words == 0:
-        raise ValueError("La transcription est vide, aucun mot détecté.")
-    
-    word_duration = duration / num_words
-    
-    subtitles = []
+def group_words_into_phrases(word_timestamps, max_gap=1.0):
+    phrases = []
     current_phrase = []
-    current_start_time = None
-    last_end_time = None
-    
-    for i, word in enumerate(words):
-        start_time = timedelta(seconds=i * word_duration)
-        end_time = timedelta(seconds=(i + 1) * word_duration)
-        
-        if last_end_time is None or (start_time - last_end_time) <= timedelta(seconds=threshold):
-            if not current_phrase:
-                current_start_time = start_time
-            current_phrase.append(word)
-        else:
-            if current_phrase:
-                subtitles.append(srt.Subtitle(
-                    index=len(subtitles) + 1,
-                    start=current_start_time,
-                    end=last_end_time,
-                    content=' '.join(current_phrase),
-                ))
-            current_phrase = [word]
-            current_start_time = start_time
-        
-        last_end_time = end_time
-    
-    if current_phrase:
-        subtitles.append(srt.Subtitle(
-            index=len(subtitles) + 1,
-            start=current_start_time,
-            end=last_end_time,
-            content=' '.join(current_phrase),
-        ))
+    current_start_time = word_timestamps['word_offsets'][0]['start_offset']  # Convert to seconds
+    for i, word_info in enumerate(word_timestamps['word_offsets']):
+        current_phrase.append(word_info['word'])
+        if (i == len(word_timestamps['word_offsets']) - 1 or
+                (word_timestamps['word_offsets'][i + 1]['start_offset'] - word_info['end_offset'])  > max_gap):
+            end_time = word_info['end_offset'] 
+            phrases.append({
+                'phrase': ' '.join(current_phrase),
+                'start_time': current_start_time,
+                'end_time': end_time
+            })
+            if i < len(word_timestamps['word_offsets']) - 1:
+                current_phrase = []
+                current_start_time = word_timestamps['word_offsets'][i + 1]['start_offset']
+    return phrases
+
+
+def generate_srt_from_phrases(phrases, srt_path):
+    subtitles = []
+    for i, phrase_info in enumerate(phrases):
+        start_time = timedelta(seconds=float(phrase_info['start_time']))
+        end_time = timedelta(seconds=float(phrase_info['end_time']))
+        subtitle = srt.Subtitle(
+            index=i + 1,
+            start=start_time,
+            end=end_time,
+            content=phrase_info['phrase'],
+        )
+        subtitles.append(subtitle)
     
     srt_content = srt.compose(subtitles)
+    with open(srt_path, "w", encoding="utf-8") as file:
+        file.write(srt_content)
+        
+    transcript = read_srt(srt_path)
+    subtitles = segment_transcript(transcript)
+    srt_content = format_subtitles_srt(subtitles)
     with open(srt_path, "w", encoding="utf-8") as file:
         file.write(srt_content)
 
@@ -96,14 +101,14 @@ def generate_subtitle_image(text, video_size):
     
     # Utiliser une police de caractères
     font_path = "arial.ttf"  # Assurez-vous que le chemin est correct
-    font = ImageFont.truetype(font_path, 38)
+    font = ImageFont.truetype(font_path, 46)
     
     # Mesurer la taille du texte et centrer
     text_bbox = draw.textbbox((0, 0), text, font=font)
     text_width = text_bbox[2] - text_bbox[0]
     text_height = text_bbox[3] - text_bbox[1]
     text_x = (video_size[0] - text_width) // 2
-    text_y = video_size[1] - text_height - 100  # Ajuster la position verticale
+    text_y = video_size[1] - text_height - 700  # Ajuster la position verticale
     
     # Ajouter le texte à l'image
     draw.text((text_x, text_y), text, font=font, fill="yellow")
@@ -117,8 +122,8 @@ def generate_subtitles_from_srt(video_clip, srt_path):
         srt_content = srt_file.read()
         subs = list(srt.parse(srt_content))
         for sub in subs:
-            start_time = sub.start.total_seconds()
-            end_time = sub.end.total_seconds()
+            start_time = sub.start.total_seconds()/60
+            end_time = sub.end.total_seconds()/60
             text = sub.content
             
             # Générer l'image de sous-titre
@@ -136,16 +141,14 @@ def add_subtitles_to_video(video_path, srt_path, output_path):
 def process_video_subtitles(video_path):
     try:
         # Transcrire l'audio avec Wav2Vec 2.0
-        transcription = transcribe_audio_with_wav2vec(video_path)
+        transcription, word_timestamps = transcribe_audio_with_wav2vec(video_path)
         srt_path = "output.srt"
         
-        # Charger la vidéo pour obtenir la durée
-        video_clip = VideoFileClip(video_path)
-        duration = video_clip.duration
+        # Regrouper les mots en phrases
+        phrases = group_words_into_phrases(word_timestamps)
         
         # Générer le fichier SRT
-        generate_srt_from_transcription(transcription, srt_path, duration)
-        
+        generate_srt_from_phrases(phrases, srt_path)
         
         # Ajouter les sous-titres à la vidéo
         output_video_path = "video_with_subtitles.mp4"
@@ -154,6 +157,7 @@ def process_video_subtitles(video_path):
     except ValueError as e:
         print(f"Error: {e}")
 
-
-
+# Exemple d'utilisation
 process_video_subtitles("test.mp4")
+
+

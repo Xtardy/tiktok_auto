@@ -75,6 +75,6 @@ for segment_video in segment_videos:
     
     # Sauvegarder la vidéo finale
     output_filename = os.path.join(output_path, f"combined_{os.path.basename(segment_video)}")
-    final_clip.write_videofile(output_filename, codec='libx264', audio_codec='aac')
+    final_clip.write_videofile(output_filename, codec='hevc_nvenc', audio_codec='aac')
 
 print("Traitement terminé!")
