@@ -1,21 +1,7 @@
-
 import os
 import random
 from moviepy.editor import VideoFileClip, CompositeVideoClip, ColorClip
 
-# Chemins des dossiers
-segments_path = 'video_segments'
-gameplay_path = 'gameplay_videos'
-
-# Obtenir les listes de fichiers vidéo
-segment_videos = [os.path.join(segments_path, f) for f in os.listdir(segments_path) if f.endswith(('.mp4', '.avi', '.mov'))]
-gameplay_videos = [os.path.join(gameplay_path, f) for f in os.listdir(gameplay_path) if f.endswith(('.mp4', '.avi', '.mov'))]
-
-# Paramètres
-crop_percentage = 0.15  # Pourcentage à recadrer de chaque côté (10% ici)
-final_width = 720
-final_height = 1280
-padding = 0 # Bande noire entre les vidéos
 
 # Fonction pour enlever le son d'un clip
 def remove_audio(clip):
@@ -30,6 +16,20 @@ def crop_clip(clip, crop_percentage):
 # Créer une sortie pour chaque vidéo segment
 output_path = 'output_videos'
 os.makedirs(output_path, exist_ok=True)
+# Chemins des dossiers
+segments_path = 'video_segments'
+gameplay_path = 'gameplay_videos'
+
+# Obtenir les listes de fichiers vidéo
+segment_videos = [os.path.join(segments_path, f) for f in os.listdir(segments_path) if f.endswith(('.mp4', '.avi', '.mov'))]
+gameplay_videos = [os.path.join(gameplay_path, f) for f in os.listdir(gameplay_path) if f.endswith(('.mp4', '.avi', '.mov'))]
+
+# Paramètres
+crop_percentage = 0.15  # Pourcentage à recadrer de chaque côté (10% ici)
+final_width = 720
+final_height = 1280
+padding = 0 # Bande noire entre les vidéos
+
 
 for segment_video in segment_videos:
     # Charger la vidéo segment

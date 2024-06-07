@@ -33,30 +33,3 @@ def cut_video(video_path, cut_points, output_dir):
             ffmpeg_extract_subclip(video_path, segment_start, segment_end, targetname=segment_path)
             segment_start = segment_end
 
-# Fonction principale
-def main():
-    video_path = "downloaded_videos/test.mp4"
-    audio_path = "audio.wav"
-    output_dir = "video_segments"
-
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-
-    # Extraire l'audio de la vidéo
-    video = mp.VideoFileClip(video_path)
-    video.audio.write_audiofile(audio_path)
-
-    # Trouver les points de coupure basés sur l'audio
-    cut_points = find_cut_points(audio_path)
-
-    # Ajuster les points de coupure pour des segments de plus d'une minute
-    adjusted_cut_points = adjust_cut_points(cut_points)
-
-    # Couper la vidéo en utilisant les points de coupure ajustés
-    cut_video(video_path, adjusted_cut_points, output_dir)
-
-    # Supprimer le fichier audio temporaire
-    os.remove(audio_path)
-
-if __name__ == '__main__':
-    main()
