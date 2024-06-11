@@ -71,8 +71,8 @@ def generate_srt_from_segments(segments, srt_path):
 def generate_subtitle_image(text, video_size):
     img = Image.new('RGBA', video_size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    font_path = "AvenirNext-Regular.ttf"
-    font = ImageFont.truetype(font_path, 58)
+    font_path = "Montserrat-ExtraBold.ttf"
+    font = ImageFont.truetype(font_path, 62)
     
     # Split the text into lines that fit within the video width
     max_width = video_size[0] - 40  # Padding of 20 pixels on each side
@@ -90,10 +90,13 @@ def generate_subtitle_image(text, video_size):
             current_line = word
     lines.append(current_line)
     
-    # Calculate the position for each line
+    # Calculate the height of all lines combined
     line_height = draw.textbbox((0, 0), lines[0], font=font)[3] - draw.textbbox((0, 0), lines[0], font=font)[1]
-    y_offset = video_size[1] - len(lines) * line_height - 600  # Adjust the vertical position
-    outline_range = 4
+    total_text_height = len(lines) * line_height
+    
+    # Calculate the starting y position to center the text vertically
+    y_offset = (video_size[1] - total_text_height) // 2
+    outline_range = 8
     
     for line in lines:
         text_bbox = draw.textbbox((0, 0), line, font=font)
@@ -308,106 +311,106 @@ def main():
     background_music_volume = 0.2
 
     
-    print("Téléchargement des vidéos...")
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    # print("Téléchargement des vidéos...")
+    # if not os.path.exists(output_dir):
+    #     os.makedirs(output_dir)
 
-    with open(links_file, 'r') as file:
-        links = file.readlines()
+    # with open(links_file, 'r') as file:
+    #     links = file.readlines()
 
-    for link in links:
-        url = link.strip()
-        if url:
-            download_video(url, output_dir, proxy)
+    # for link in links:
+    #     url = link.strip()
+    #     if url:
+    #         download_video(url, output_dir, proxy)
     
-    print("Couper les vidéos...")
+    # print("Couper les vidéos...")
 
-    if not os.path.exists(audio_temp_path):
-        first_video = next((f for f in os.listdir(output_dir) if f.endswith(('.mp4', '.avi', '.mov'))), None)
-        if first_video:
-            video_path = os.path.join(output_dir, first_video)
-            extract_audio_from_video(video_path, audio_temp_path)
-        else:
-            print("Erreur: Aucune vidéo disponible pour extraire l'audio.")
-            return
+    # if not os.path.exists(audio_temp_path):
+    #     first_video = next((f for f in os.listdir(output_dir) if f.endswith(('.mp4', '.avi', '.mov'))), None)
+    #     if first_video:
+    #         video_path = os.path.join(output_dir, first_video)
+    #         extract_audio_from_video(video_path, audio_temp_path)
+    #     else:
+    #         print("Erreur: Aucune vidéo disponible pour extraire l'audio.")
+    #         return
     
-    cut_points = find_cut_points(audio_temp_path, min_silence_len=1000, silence_thresh=-40)
-    cut_points = adjust_cut_points(cut_points, min_segment_length=60)
+    # cut_points = find_cut_points(audio_temp_path, min_silence_len=1000, silence_thresh=-40)
+    # cut_points = adjust_cut_points(cut_points, min_segment_length=60)
 
-    if not os.path.exists(segments_path):
-        os.makedirs(segments_path)
+    # if not os.path.exists(segments_path):
+    #     os.makedirs(segments_path)
 
-    for video_file in os.listdir(output_dir):
-        if video_file.endswith(('.mp4', '.avi', '.mov')):
-            video_path = os.path.join(output_dir, video_file)
-            cut_video(video_path, cut_points, segments_path)
+    # for video_file in os.listdir(output_dir):
+    #     if video_file.endswith(('.mp4', '.avi', '.mov')):
+    #         video_path = os.path.join(output_dir, video_file)
+    #         cut_video(video_path, cut_points, segments_path)
             
-            transcript_file = video_path.replace('.mp4', '.srt')
-            if os.path.exists(transcript_file):
-                cut_transcript(transcript_file, cut_points, segments_path)
+    #         transcript_file = video_path.replace('.mp4', '.srt')
+    #         if os.path.exists(transcript_file):
+    #             cut_transcript(transcript_file, cut_points, segments_path)
 
-    print("Ajout du gameplay aux vidéos...")
-    if not os.path.exists(gameplay_output_path):
-        os.makedirs(gameplay_output_path)
+    # print("Ajout du gameplay aux vidéos...")
+    # if not os.path.exists(gameplay_output_path):
+    #     os.makedirs(gameplay_output_path)
 
-    segment_videos = [os.path.join(segments_path, f) for f in os.listdir(segments_path) if f.endswith(('.mp4', '.avi', '.mov'))]
-    gameplay_videos = [os.path.join(gameplay_path, f) for f in os.listdir(gameplay_path) if f.endswith(('.mp4', '.avi', '.mov'))]
+    # segment_videos = [os.path.join(segments_path, f) for f in os.listdir(segments_path) if f.endswith(('.mp4', '.avi', '.mov'))]
+    # gameplay_videos = [os.path.join(gameplay_path, f) for f in os.listdir(gameplay_path) if f.endswith(('.mp4', '.avi', '.mov'))]
 
 
-    for segment_video in segment_videos:
-        segment_clip = VideoFileClip(segment_video)
-        gameplay_video = random.choice(gameplay_videos)
-        gameplay_clip = VideoFileClip(gameplay_video)
-        gameplay_clip = remove_audio(gameplay_clip)
+    # for segment_video in segment_videos:
+    #     segment_clip = VideoFileClip(segment_video)
+    #     gameplay_video = random.choice(gameplay_videos)
+    #     gameplay_clip = VideoFileClip(gameplay_video)
+    #     gameplay_clip = remove_audio(gameplay_clip)
 
-        if gameplay_clip.duration > segment_clip.duration:
-            gameplay_clip = gameplay_clip.subclip(0, segment_clip.duration)
+    #     if gameplay_clip.duration > segment_clip.duration:
+    #         gameplay_clip = gameplay_clip.subclip(0, segment_clip.duration)
 
-        segment_clip = crop_clip(segment_clip, crop_percentage)
-        gameplay_clip = crop_clip(gameplay_clip, crop_percentage)
-        segment_clip = segment_clip.resize(width=final_width)
-        gameplay_clip = gameplay_clip.resize(width=final_width)
-        total_height = segment_clip.h + gameplay_clip.h + padding
-        segment_clip = segment_clip.set_position(("center", "top"))
-        gameplay_clip = gameplay_clip.set_position(("center", segment_clip.h + padding))
-        black_bar = ColorClip(size=(final_width, padding), color=(0, 0, 0)).set_duration(segment_clip.duration)
+    #     segment_clip = crop_clip(segment_clip, crop_percentage)
+    #     gameplay_clip = crop_clip(gameplay_clip, crop_percentage)
+    #     segment_clip = segment_clip.resize(width=final_width)
+    #     gameplay_clip = gameplay_clip.resize(width=final_width)
+    #     total_height = segment_clip.h + gameplay_clip.h + padding
+    #     segment_clip = segment_clip.set_position(("center", "top"))
+    #     gameplay_clip = gameplay_clip.set_position(("center", segment_clip.h + padding))
+    #     black_bar = ColorClip(size=(final_width, padding), color=(0, 0, 0)).set_duration(segment_clip.duration)
 
-        final_clip = CompositeVideoClip([segment_clip, black_bar.set_position(("center", segment_clip.h)), gameplay_clip], size=(final_width, total_height))
+    #     final_clip = CompositeVideoClip([segment_clip, black_bar.set_position(("center", segment_clip.h)), gameplay_clip], size=(final_width, total_height))
 
-        if total_height < final_height:
-            top_black = ColorClip(size=(final_width, (final_height - total_height) // 2), color=(0, 0, 0)).set_duration(segment_clip.duration)
-            bottom_black = ColorClip(size=(final_width, (final_height - total_height + 1) // 2), color=(0, 0, 0)).set_duration(segment_clip.duration)
-            final_clip = CompositeVideoClip([top_black.set_position(("center", "top")), final_clip.set_position(("center", top_black.h)), bottom_black.set_position(("center", top_black.h + total_height))], size=(final_width, final_height))
+    #     if total_height < final_height:
+    #         top_black = ColorClip(size=(final_width, (final_height - total_height) // 2), color=(0, 0, 0)).set_duration(segment_clip.duration)
+    #         bottom_black = ColorClip(size=(final_width, (final_height - total_height + 1) // 2), color=(0, 0, 0)).set_duration(segment_clip.duration)
+    #         final_clip = CompositeVideoClip([top_black.set_position(("center", "top")), final_clip.set_position(("center", top_black.h)), bottom_black.set_position(("center", top_black.h + total_height))], size=(final_width, final_height))
 
-        output_filename = os.path.join(gameplay_output_path, f"combined_{os.path.basename(segment_video)}")
-        final_clip.write_videofile(output_filename, codec='hevc_nvenc', audio_codec='aac')
+    #     output_filename = os.path.join(gameplay_output_path, f"combined_{os.path.basename(segment_video)}")
+    #     final_clip.write_videofile(output_filename, codec='hevc_nvenc', audio_codec='aac')
 
-    print("Traitement terminé!")
+    # print("Traitement terminé!")
 
-    print("Ajout des sons aux vidéos...")
-    if not os.path.exists(music_output_path):
-        os.makedirs(music_output_path)
+    # print("Ajout des sons aux vidéos...")
+    # if not os.path.exists(music_output_path):
+    #     os.makedirs(music_output_path)
 
     
-    background_music_files = [os.path.join(background_music_path, f) for f in os.listdir(background_music_path) if f.endswith(('.mp3', '.wav', '.ogg'))]
+    # background_music_files = [os.path.join(background_music_path, f) for f in os.listdir(background_music_path) if f.endswith(('.mp3', '.wav', '.ogg'))]
 
-    for video_file in os.listdir(gameplay_output_path):
-        if video_file.endswith(('.mp4', '.avi', '.mov')):
-            video_path = os.path.join(gameplay_output_path, video_file)
-            video_clip = VideoFileClip(video_path)
-            background_music_file = random.choice(background_music_files)
-            background_music = AudioFileClip(background_music_file).volumex(background_music_volume)
+    # for video_file in os.listdir(gameplay_output_path):
+    #     if video_file.endswith(('.mp4', '.avi', '.mov')):
+    #         video_path = os.path.join(gameplay_output_path, video_file)
+    #         video_clip = VideoFileClip(video_path)
+    #         background_music_file = random.choice(background_music_files)
+    #         background_music = AudioFileClip(background_music_file).volumex(background_music_volume)
 
-            if background_music.duration > video_clip.duration:
-                background_music = background_music.subclip(0, video_clip.duration)
+    #         if background_music.duration > video_clip.duration:
+    #             background_music = background_music.subclip(0, video_clip.duration)
 
-            background_music = background_music.set_duration(video_clip.duration)
-            final_audio = CompositeAudioClip([video_clip.audio, background_music])
-            final_clip = video_clip.set_audio(final_audio)
-            output_filename = os.path.join(music_output_path, os.path.basename(video_file))
-            final_clip.write_videofile(output_filename, codec='libx264', audio_codec='aac')
+    #         background_music = background_music.set_duration(video_clip.duration)
+    #         final_audio = CompositeAudioClip([video_clip.audio, background_music])
+    #         final_clip = video_clip.set_audio(final_audio)
+    #         output_filename = os.path.join(music_output_path, os.path.basename(video_file))
+    #         final_clip.write_videofile(output_filename, codec='libx264', audio_codec='aac')
 
-    print("Ajout de la musique de fond terminé!")
+    # print("Ajout de la musique de fond terminé!")
 
     print("Ajout des sous-titres aux vidéos...")
     if not os.path.exists(final_output_path):
