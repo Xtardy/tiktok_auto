@@ -47,7 +47,7 @@ def save_transcript_to_file(transcript, file_path):
             file.write(f"{start:.2f} --> {start + duration:.2f}\n{text}\n\n")
 
 # Example usage
-video_id = 'S1dNuCG3sOA'
+video_id = 'MS5UjNKw_1M'
 transcript = get_transcript(video_id)
 if transcript:
     save_transcript_to_file(transcript, 'transcript.txt')
